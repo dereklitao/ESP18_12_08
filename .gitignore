@@ -17,3 +17,4 @@ examples/**/build
 tools/unit-test-app/sdkconfig
 tools/unit-test-app/sdkconfig.old
 tools/unit-test-app/build
+csro/build
