@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := project_template
+PROJECT_NAME := csro_esp8266
 
 include $(IDF_PATH)/make/project.mk
 

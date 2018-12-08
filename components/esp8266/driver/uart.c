@@ -33,6 +33,7 @@
 #include "rom/ets_sys.h"
 
 #include "driver/uart.h"
+#include "../../../csro/components/modbus/modbus_master.h"
 
 #define portYIELD_FROM_ISR() taskYIELD()
 
@@ -577,9 +578,14 @@ static void uart_rx_intr_handler_default(void *param)
             if (p_uart->rx_buffer_full_flg == false) {
                 // We have to read out all data in RX FIFO to clear the interrupt signal
                 while (buf_idx < rx_fifo_len) {
-                    p_uart->rx_data_buf[buf_idx++] = uart_reg->fifo.rw_byte;
+                    uint8_t data = uart_reg->fifo.rw_byte;
+                    p_uart->rx_data_buf[buf_idx++] = data;
+                    uart0_receive_one_byte(data);
                 }
-
+                if(uart_intr_status & UART_RXFIFO_TOUT_INT_ST_M)
+                {
+                    uart0_receive_complete();
+                }
                 // Get the buffer from the FIFO
                 // After Copying the Data From FIFO ,Clear intr_status
                 uart_clear_intr_status(uart_num, UART_RXFIFO_TOUT_INT_CLR_M | UART_RXFIFO_FULL_INT_CLR_M);
