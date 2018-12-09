@@ -12,6 +12,7 @@ void csro_system_init(void);
 void csro_mqtt_task(void *pvParameters);
 void csro_smartconfig_task(void *pvParameters);
 void csro_system_set_status(csro_system_status status);
+void csro_system_encrypt(void);
 
 void csro_datetime_init(void);
 void csro_datetime_print(void);

@@ -54,8 +54,8 @@ typedef struct csro_wifi_param {
 typedef struct{
     uint8_t device_type[20];
     uint8_t mac[6];
-    uint8_t mac_string[20];
-    uint8_t host_name[20];
+    char mac_string[20];
+    char host_name[20];
     uint8_t ip[4];
     uint8_t ip_string[20];
     uint8_t power_on_time[30];
@@ -70,9 +70,9 @@ typedef struct{
 } csro_system_info;
 
 typedef struct {
-    uint8_t id[50];
-    uint8_t name[50];
-    uint8_t password[50];
+    char id[50];
+    char name[50];
+    char password[50];
     uint8_t sub_topic[100];
     uint8_t pub_topic[100];
     uint8_t sendbuf[1000];

@@ -10,6 +10,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     switch(event->event_id) {
     case SYSTEM_EVENT_STA_START:
+        tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, sys_info.host_name);
         esp_wifi_connect();
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
@@ -93,17 +94,17 @@ static void udp_receive_task(void *pvParameters)
 
 bool router_is_connected(void)
 {
+
     return false;
 }
 
-void csro_mqtt_task(void *pvParameters)
+
+
+static void connect_wifi(void)
 {
     csro_system_set_status(NORMAL_START_NOWIFI);
     wifi_event_group = xEventGroupCreate();
     tcpip_adapter_init();
-    // esp_wifi_get_mac(ESP_IF_WIFI_STA, sys_info.)
-    // tcpip_adapter_is_netif_up
-    tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, "Hello");
     esp_event_loop_init(event_handler, NULL);
 
     wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
@@ -115,13 +116,68 @@ void csro_mqtt_task(void *pvParameters)
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config);
     esp_wifi_start();
-
     xTaskCreate(udp_receive_task, "udp_receive_task", 2048, NULL, 5, NULL);
+} 
+
+static bool wifi_is_connected(void)
+{
+    static bool connect = false;
+    tcpip_adapter_ip_info_t info;
+    tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &info);
+    if (info.ip.addr != 0) {
+        if (connect == false) {
+            connect = true;
+            csro_system_set_status(NORMAL_START_NOSERVER);
+            sys_info.ip[0] = info.ip.addr&0xFF;
+            sys_info.ip[1] = (info.ip.addr&0xFF00)>>8;
+            sys_info.ip[2] = (info.ip.addr&0xFF0000)>>16;
+            sys_info.ip[3] = (info.ip.addr&0xFF000000)>>24;
+        } 
+    }
+    else {
+        csro_system_set_status(NORMAL_START_NOWIFI);
+        connect = false;
+    }
+    return connect;
+}
+
+static bool broker_is_connected(void)
+{
+    if (mqtt.client.isconnected == 1) {
+        return true;
+    }
+    if (strlen((char *)mqtt.broker) == 0 || strlen((char *)mqtt.prefix) == 0) {
+        return false;
+    }
+    close(mqtt.network.my_socket);
+    NetworkInit(&mqtt.network);
+    csro_system_encrypt();
+    debug("id = %s, name = %s, password = %s\r\n", mqtt.id, mqtt.name, mqtt.password);
+    return false;
+}
+
+
+void csro_mqtt_task(void *pvParameters)
+{
+    connect_wifi();
     while(1)
     {
-        debug("running mqtt task. free heap %d. \r\n", esp_get_free_heap_size());
-        csro_datetime_print();
-        vTaskDelay(1000 / portTICK_RATE_MS);
+        if (wifi_is_connected()) {
+            if (broker_is_connected())
+            {
+                debug("broker is connected\r\n");
+                vTaskDelay(100 / portTICK_RATE_MS);
+            }
+        }
+        vTaskDelay(100 / portTICK_RATE_MS);
     }
     vTaskDelete(NULL);
 }
+
+
+
+
+
+
+        // debug("running mqtt task. free heap %d. \r\n", esp_get_free_heap_size());
+        // csro_datetime_print();
