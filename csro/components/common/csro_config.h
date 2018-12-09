@@ -17,6 +17,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "freertos/semphr.h"
 
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -27,12 +28,26 @@
 
 
 
-#define	   DEBUG
-#ifdef 	   DEBUG
-   #define debug(format, ...) printf(format, ## __VA_ARGS__)
+#define	    DEBUG
+#ifdef 	    DEBUG
+   #define  debug(format, ...) printf(format, ## __VA_ARGS__)
 #else
-   #define debug(format, ...)
+   #define  debug(format, ...)
 #endif
+
+#define     MQTT_BUFFER_LENGTH      1000
+
+/*Define Device Type*/
+
+#define			AIR_SYSTEM
+
+/*
+#define			NLIGHT						3
+#define			DLIGHT						1
+#define			MOTOR						2
+#define			AIR_MONITOR
+#define			AIR_SYSTEM
+*/
 
 typedef enum
 {
@@ -52,12 +67,12 @@ typedef struct csro_wifi_param {
 }csro_wifi_param;
 
 typedef struct{
-    uint8_t device_type[20];
+    char device_type[20];
     uint8_t mac[6];
     char mac_string[20];
     char host_name[20];
     uint8_t ip[4];
-    uint8_t ip_string[20];
+    char ip_string[20];
     uint8_t power_on_time[30];
     uint8_t serv_conn_time[30];
     uint8_t time_stamp[30];
@@ -73,13 +88,13 @@ typedef struct {
     char id[50];
     char name[50];
     char password[50];
-    uint8_t sub_topic[100];
-    uint8_t pub_topic[100];
-    uint8_t sendbuf[1000];
-    uint8_t recvbuf[1000];
-    uint8_t content[1000];
-    uint8_t broker[50];
-    uint8_t prefix[50];
+    char sub_topic[100];
+    char pub_topic[100];
+    uint8_t sendbuf[MQTT_BUFFER_LENGTH];
+    uint8_t recvbuf[MQTT_BUFFER_LENGTH];
+    char content[MQTT_BUFFER_LENGTH];
+    char broker[50];
+    char prefix[50];
     struct Network network;
     MQTTClient client;
     MQTTMessage message;
