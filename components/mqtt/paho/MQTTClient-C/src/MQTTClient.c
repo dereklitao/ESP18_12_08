@@ -503,6 +503,7 @@ int MQTTSetMessageHandler(MQTTClient* c, const char* topicFilter, messageHandler
         {
             c->messageHandlers[i].topicFilter = topicFilter;
             c->messageHandlers[i].fp = messageHandler;
+            printf("messageHandlers %d, topicFilter is %s\r\n", i, topicFilter);
         }
     }
     return rc;

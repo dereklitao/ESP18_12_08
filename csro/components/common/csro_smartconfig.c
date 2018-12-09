@@ -1,5 +1,6 @@
 #include "csro_common.h"
 #include "esp_smartconfig.h"
+#include "esp_system.h"
 
 static EventGroupHandle_t wifi_event_group;
 static const int CONNECTED_BIT = BIT0;

@@ -1,6 +1,6 @@
 #include "csro_common.h"
-#include "cJSON.h"
 #include "../device/csro_device.h"
+#include "cJSON.h"
 
 static EventGroupHandle_t wifi_event_group;
 static SemaphoreHandle_t basic_msg_semaphore;
@@ -13,15 +13,21 @@ int udp_sock;
 
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
+    static uint8_t restart_count = 0;
     switch(event->event_id) {
     case SYSTEM_EVENT_STA_START:
         tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, sys_info.host_name);
         esp_wifi_connect();
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
+        restart_count = 0;
         xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
+        restart_count++;
+        if (restart_count == 20) {
+            esp_restart();
+        }
         esp_wifi_connect();
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         break;
@@ -98,22 +104,24 @@ static void udp_receive_task(void *pvParameters)
 void handle_individual_message(MessageData* data)
 {
     debug("handle_individual_message\r\n");
-    csro_device_handle_message(data);
+    //csro_device_handle_message(data);
 }
 
 void handle_group_message(MessageData* data)
 {
     debug("handle_group_message\r\n");
-    csro_device_handle_message(data);
+    //csro_device_handle_message(data);
 }
 
 
 static void connect_wifi(void)
 {
+
     csro_system_set_status(NORMAL_START_NOWIFI);
     wifi_event_group = xEventGroupCreate();
     tcpip_adapter_init();
     esp_event_loop_init(event_handler, NULL);
+    // esp_wifi_restore();
 
     wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&config);
@@ -176,18 +184,18 @@ static bool broker_is_connected(void)
     if (MQTTConnect(&mqtt.client, &data) != SUCCESS) {
         return false;
     }
-    sprintf(mqtt.sub_topic, "%s/%s/%s/command", mqtt.prefix, sys_info.mac_string, sys_info.device_type);
-    if (MQTTSubscribe(&mqtt.client, mqtt.sub_topic, QOS0, handle_individual_message) != SUCCESS) {
+    sprintf(mqtt.sub_topic_individual, "%s/%s/%s/command", mqtt.prefix, sys_info.mac_string, sys_info.device_type);
+    sprintf(mqtt.sub_topic_group, "%s/group", mqtt.prefix);
+
+    if (MQTTSubscribe(&mqtt.client, mqtt.sub_topic_individual, QOS1, handle_individual_message) != SUCCESS) {
         mqtt.client.isconnected = 0;
         return false;
     }
-    debug("sub ok with topic: %s\r\n", mqtt.sub_topic);
-    sprintf(mqtt.sub_topic, "%s/group", mqtt.prefix);
-    if (MQTTSubscribe(&mqtt.client, mqtt.sub_topic, QOS0, handle_group_message) != SUCCESS) {
+    if (MQTTSubscribe(&mqtt.client, mqtt.sub_topic_group, QOS1, handle_group_message) != SUCCESS) {
         mqtt.client.isconnected = 0;
         return false;
     }
-    debug("sub ok with topic: %s\r\n", mqtt.sub_topic);
+    debug("sub ok with topic: %s\r\n", mqtt.sub_topic_group);
     return true;
 }
 
@@ -219,8 +227,9 @@ static bool mqtt_pub_basic_message(void)
 	sprintf(mqtt.pub_topic, "%s/%s/%s/basic", mqtt.prefix, sys_info.mac_string, sys_info.device_type);
 	mqtt.message.payload = mqtt.content;
 	mqtt.message.payloadlen = strlen(mqtt.message.payload);
-	mqtt.message.qos = QOS2;
+	mqtt.message.qos = QOS1;
 	if (MQTTPublish(&mqtt.client, mqtt.pub_topic, &mqtt.message) != SUCCESS) {
+        mqtt.client.isconnected = 0;
         return false;
     }
 	return true;
@@ -250,16 +259,17 @@ void csro_mqtt_task(void *pvParameters)
         if (wifi_is_connected()) {
             if (broker_is_connected()) {
                 csro_system_set_status(NORMAL_START_OK);
-                if (xSemaphoreTake(basic_msg_semaphore, 0) == pdTRUE) {
-                   mqtt_pub_basic_message();
-               }
+            //     if (xSemaphoreTake(basic_msg_semaphore, 0) == pdTRUE) {
+            //        mqtt_pub_basic_message();
+            //    }
+                 mqtt_pub_basic_message();
                 if (xSemaphoreTake(system_msg_semaphore, 0) == pdTRUE) {
                    mqtt_pub_system_message();
                }
                 if (xSemaphoreTake(timer_msg_semaphore, 0) == pdTRUE) {
                    mqtt_pub_timer_message();
                }
-                if (MQTTYield(&mqtt.client, 100) != SUCCESS) {
+                if (MQTTYield(&mqtt.client, 1) != SUCCESS) {
                    mqtt.client.isconnected = 0;
                }
             }
@@ -268,7 +278,9 @@ void csro_mqtt_task(void *pvParameters)
                 vTaskDelay(1000 / portTICK_RATE_MS);
             }
         }
-        vTaskDelay(1000 / portTICK_RATE_MS);
+        else {
+            vTaskDelay(1000 / portTICK_RATE_MS);
+        }
     }
     vTaskDelete(NULL);
 }

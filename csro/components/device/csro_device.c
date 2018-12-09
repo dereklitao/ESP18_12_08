@@ -12,10 +12,11 @@ void csro_device_prepare_basic_message(void)
     cJSON *root=cJSON_CreateObject();
     cJSON *air_system;
     cJSON_AddItemToObject(root, "air_system", air_system = cJSON_CreateObject());
-    cJSON_AddNumberToObject(air_system, "basiccount", basic_count++);
-    cJSON_AddNumberToObject(air_system, "freeheap", esp_get_free_heap_size());
+    cJSON_AddNumberToObject(air_system, "basic_count", basic_count++);
+    cJSON_AddNumberToObject(air_system, "power_count", sys_info.power_on_count);
+    cJSON_AddNumberToObject(air_system, "free_heap", esp_get_free_heap_size());
     cJSON_AddStringToObject(air_system, "ip", sys_info.ip_string);
-    cJSON_AddNumberToObject(air_system, "runs", date_time.time_run);
+    cJSON_AddNumberToObject(air_system, "run_sec", date_time.time_run);
     char *out = cJSON_PrintUnformatted(root);
 	strcpy(mqtt.content, out);
 	free(out);

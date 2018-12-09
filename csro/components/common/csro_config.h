@@ -88,7 +88,8 @@ typedef struct {
     char id[50];
     char name[50];
     char password[50];
-    char sub_topic[100];
+    char sub_topic_individual[100];
+    char sub_topic_group[100];
     char pub_topic[100];
     uint8_t sendbuf[MQTT_BUFFER_LENGTH];
     uint8_t recvbuf[MQTT_BUFFER_LENGTH];
