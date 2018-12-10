@@ -18,4 +18,10 @@ void csro_datetime_init(void);
 void csro_datetime_print(void);
 void csro_datetime_set(char *timeinfo);
 
+
+void csro_alarm_add(uint8_t weekday_flag, uint16_t minutes, uint8_t action);
+void csro_alarm_modify(uint8_t index, uint8_t weekday_flag, uint16_t minutes, uint8_t action);
+void csro_alarm_delete(uint8_t index);
+void csro_alarm_clear(void);
+
 #endif

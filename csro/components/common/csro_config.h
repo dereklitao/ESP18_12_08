@@ -109,4 +109,11 @@ typedef struct {
 } csro_date_time;
 
 
+typedef struct {
+    bool valid;
+    uint8_t weekday;
+    uint16_t minutes;
+    uint8_t action;
+} csro_alarm;
+
 #endif
